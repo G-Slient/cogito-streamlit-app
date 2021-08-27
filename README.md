@@ -1,1 +1,3 @@
-# cogito-streamlit-app
+# Cogito-Streamlit-App
+
+<img src="assets/preview.gif">
