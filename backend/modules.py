@@ -1,7 +1,11 @@
+import pandas as pd
+import speech_recognition as sr
+import joblib
+import os
+import numpy as np
+import librosa
 from surfboard.sound import Waveform
 from surfboard.feature_extraction import extract_features
-
-import speech_recognition as sr
 from pydub import AudioSegment
 
 import warnings
@@ -50,6 +54,8 @@ components_list = [
 
 statistics_list = ['mean', 'std', 'first_derivative_mean', 'first_derivative_std']
 
+labels = ['anger' ,'disgust', 'fear' ,'joy', 'neutral' ,'sadness', 'surprise']
+
 recognizer = sr.Recognizer()
 
 def audio_features(audio_file_path : str):
@@ -68,3 +74,49 @@ def audio_to_text(audio_file_path : str):
         return text
     except sr.UnknownValueError:
         return " "
+
+def feature_selection(df:pd.DataFrame)-> list:
+
+    # feat = df.columns.tolist()
+    # feat.remove("formants_slidingwindow")
+    # feat.remove("lsf")
+
+    feat = joblib.load(os.path.join("model","features_list.pkl"))
+
+    return feat
+
+def calFileSize(audio_file_path:str):
+     return os.stat(audio_file_path).st_size
+
+def calAudioDuration(audio_file_path:str):
+    return librosa.get_duration(filename=audio_file_path)
+
+def load_model():
+    model = joblib.load(os.path.join("model","model.pkl"))
+    return model
+
+def getPredictions(model,df,feat):
+
+    output_dic = {}
+    try:
+        #process the null, infinite values
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        null_cols = list(df.columns[df.isnull().any()])
+        df[null_cols] = df[null_cols].astype(float)
+
+        preds = model.predict(df[feat])
+        res = dict(zip(labels, preds[0]))
+        output_dic['probabilities'] = res
+        emotion = max(res, key= lambda x: res[x])
+
+        output_dic['Emotion'] = emotion.title()
+
+        output_dic['Confidence'] = round(output_dic['probabilities'][emotion],2)
+
+        output_dic['status'] = 200
+
+        return output_dic
+    except:
+        print("Error in getPredictions")
+        output_dic['status'] = 202
+        return output_dic

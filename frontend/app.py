@@ -14,7 +14,7 @@ import json
 def init():
     global use_ploty, backend
     use_ploty = False 
-    backend = "http://localhost:8000/"
+    backend = "http://localhost:8000"
 
     st.set_page_config(layout="wide")
     return
@@ -53,15 +53,14 @@ def create_request(uploaded_file):
 
     #load the audio file
     y, sr = librosa.load(uploaded_file)
-    print(y.shape,sr)
+    print(y.shape,sr,uploaded_file.name)
 
     #payload
     files = {"name":uploaded_file.name,"y":y,"sr":sr}
     #post request
     response = requests.post(url, data=json.dumps(files,cls=NumpyEncoder))
 
-    return response
-
+    return response.json()
     
 
 
@@ -100,11 +99,11 @@ def main():
             gif_path = os.path.join("assets","load.gif")
             gif_runner = col2.image(gif_path,use_column_width=True,width=10)
             
-            res = create_request(uploaded_file)
-            print(res)
-            output_dic = get_emotion(uploaded_file)
+            output_dic = create_request(uploaded_file)
+            
+            #output_dic = get_emotion(uploaded_file)
             gif_runner.empty()
-            if output_dic['probabilities']:
+            if output_dic['status']==200:
                 if use_ploty:
                     df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index').reset_index().rename(columns={'index':'Labels',0:'Probability'})
                     fig = px.bar(df,y="Labels",x="Probability",orientation='h')
@@ -116,6 +115,9 @@ def main():
                                 unsafe_allow_html=True)
 
                 col2.markdown('<center><h3 style="color: green;">Confidence Score: '+str(output_dic["Confidence"])+'%</h3></center>',
+                                unsafe_allow_html=True)
+            else:
+                col2.markdown('<center><h3 style="color: red;">Error! Try other Audio</h3></center>',
                                 unsafe_allow_html=True)
 
 
