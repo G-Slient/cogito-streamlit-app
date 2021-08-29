@@ -56,7 +56,7 @@ statistics_list = ['mean', 'std', 'first_derivative_mean', 'first_derivative_std
 
 labels = ['anger' ,'disgust', 'fear' ,'joy', 'neutral' ,'sadness', 'surprise']
 
-recognizer = sr.Recognizer()
+
 
 def audio_features(audio_file_path : str):
     waveform = Waveform(path=audio_file_path)
@@ -67,8 +67,6 @@ def audio_to_text(audio_file_path : str):
 
     try:
         recognizer = sr.Recognizer()
-        #sound = AudioSegment.from_mp3(audio_file_path)
-        #sound.export("temp.wav", format="wav")
         with sr.AudioFile(audio_file_path) as source:
             audio = recognizer.record(source)                  
             text = recognizer.recognize_google(audio)
@@ -78,12 +76,7 @@ def audio_to_text(audio_file_path : str):
 
 def load_features()-> list:
 
-    # feat = df.columns.tolist()
-    # feat.remove("formants_slidingwindow")
-    # feat.remove("lsf")
-
     feat = joblib.load(os.path.join("model","features_list.pkl"))
-
     return feat
 
 def calFileSize(audio_file_path:str):
@@ -99,7 +92,6 @@ def load_model():
 def getPredictions(model,df,feat):
 
     output_dic = {}
-
     try:
         #process the null, infinite values
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -109,12 +101,10 @@ def getPredictions(model,df,feat):
         preds = model.predict(df[feat])
         res = dict(zip(labels, preds[0]))
         output_dic['probabilities'] = res
+
         emotion = max(res, key= lambda x: res[x])
-
         output_dic['Emotion'] = emotion.title()
-
         output_dic['Confidence'] = round(output_dic['probabilities'][emotion],2)*100
-
         output_dic['status'] = 200
 
         return output_dic

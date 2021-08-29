@@ -16,22 +16,38 @@ app = FastAPI()
 
 model = modules.load_model()
 
+if not os.path.exists("data"):
+    os.makedirs("data")
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome from the API"}
 
 @app.post("/upload")
 async def get_audio_file(file: UploadFile = File(...)):
+    start_time = time.time()
     file_location = f"data/{file.filename}"
     with open(file_location, "wb+") as file_object:
         file_object.write(file.file.read())
     print({"info": f"file '{file.filename}' saved at '{file_location}'"})
     features_df = modules.audio_features(file_location)
-    features_df['text'] = modules.audio_to_text(file_location)
+    #speech to text
+    if is_text:
+        features_df['text'] = modules.audio_to_text(file_location)
     print(features_df)
-    return "Done"
+    #filesize
+    features_df['filesize']= modules.calFileSize(file_location)
+    #audio-duration
+    features_df['fileduration']= modules.calAudioDuration(file_location)
 
+    #features selection
+    features = modules.load_features()
 
+    output_dic = modules.getPredictions(model,features_df,features)
+    print("Execution time {} sec::".format((time.time()-start_time)))
+    output_dic['execution_time'] = round((time.time()-start_time),2)
+    print(output_dic)
+    return output_dic
 
 
 class Item(BaseModel):
@@ -50,8 +66,6 @@ async def get_predictions(item: Item):
     file_location = f"data/{filename}"
     sf.write(file_location,y,sr)
     print({"info": f"file '{filename}' saved at '{file_location}'"})
-
-    
 
     #extract features from audio
     features_df = modules.audio_features(file_location)

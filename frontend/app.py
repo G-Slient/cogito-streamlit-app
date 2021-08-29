@@ -1,6 +1,6 @@
+#Import Libraries
 import streamlit as st
 import streamlit.components.v1 as stc
-from PIL import Image
 import librosa
 import numpy as np
 import pandas as pd
@@ -9,46 +9,42 @@ import time
 import plotly.express as px
 import requests
 import json
+from PIL import Image
 
 
 def init():
-    global use_ploty, backend, print_time, recog_text
+    """Initialize the variable
+    """
+    global use_ploty, backend, print_time, recog_text, speech2text
     use_ploty = True 
     print_time = False
+    speech2text = False
     backend = "http://localhost:8000"
 
     st.set_page_config(layout="wide")
-    return
     
-def load_image(img_path):
+    
+def load_image(img_path:str):
+    """load the image using PIL
+    Args:
+        img_path: Image path
+    Returns:
+        image: PIL Image object
+    """
     image = Image.open(img_path)
     return image
 
-def get_emotion(uploaded_file):
-
-    time.sleep(10)
-    output_dic = {
-        'Emotion':"Neutral",
-        'Confidence':77,
-        'probabilities':{
-            'neutral':77,
-            'joy':2,
-            'anger':3,
-            'disgust':5,
-            'fear':2,
-            'surprise':4,
-            'sadness':9
-        }
-    }
-    return output_dic
-
 class NumpyEncoder(json.JSONEncoder):
+    """Encodes the numpy array into list
+    """
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
 def create_request(uploaded_file,col1):
+    """post request to predictions
+    """
  
     url = f"{backend}/get_predictions"
 
@@ -65,7 +61,7 @@ def create_request(uploaded_file,col1):
          #payload
         files = {"name":uploaded_file.name.split(".")[0]+".wav","y":y,"sr":sr}
         # delete the intermedite file
-        #os.remove(os.path.join("tmp","file.wav"))
+        os.remove(os.path.join("tmp","file.wav"))
     else:
         #load the audio file
         y, sr = librosa.load(uploaded_file)
@@ -76,21 +72,24 @@ def create_request(uploaded_file,col1):
     #post request
     response = requests.post(url, data=json.dumps(files,cls=NumpyEncoder))
 
-    url1 = f"{backend}/speech_to_text"
-    #post request
-    response_text = requests.post(url1, data=json.dumps(files,cls=NumpyEncoder))
-    print(response_text.json())
+    if speech2text:
+        url1 = f"{backend}/speech_to_text"
+        #post request
+        response_text = requests.post(url1, data=json.dumps(files,cls=NumpyEncoder))
+        print(response_text.json())
 
-    if response_text.json()['text']!=' ':
-        recog_text = response_text.json()['text']
-        col1.markdown('<center><h3 style="color: black;">Recognized Text:'+recog_text+'</h3></center>',
-                                unsafe_allow_html=True)
+        if response_text.json()['text']!=' ':
+            recog_text = response_text.json()['text']
+            col1.markdown('<center><h3 style="color: black;">Recognized Text:'+recog_text+'</h3></center>',
+                                    unsafe_allow_html=True)
 
     return response.json()
     
 
 
 def main():
+    """Main start of program
+    """
     
     output_dic = {}
     #Header Image
@@ -129,7 +128,6 @@ def main():
             
             output_dic = create_request(uploaded_file,col1)
             
-            #output_dic = get_emotion(uploaded_file)
             gif_runner.empty()
             if output_dic['status']==200:
                 if use_ploty:
@@ -157,8 +155,6 @@ def main():
                 col2.markdown('<center><h3 style="color: red;">Error! Try other Audio</h3></center>',
                                 unsafe_allow_html=True)
         
-
-
 
 if __name__=='__main__':
     init()
