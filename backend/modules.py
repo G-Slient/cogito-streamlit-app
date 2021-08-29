@@ -7,6 +7,7 @@ import librosa
 from surfboard.sound import Waveform
 from surfboard.feature_extraction import extract_features
 from pydub import AudioSegment
+import math 
 
 import warnings
 warnings.simplefilter('ignore')
@@ -89,6 +90,10 @@ def load_model():
     model = joblib.load(os.path.join("model","model.pkl"))
     return model
 
+def round_up(n, decimals=0):
+    multiplier = 10 ** decimals
+    return math.ceil(n * multiplier) / multiplier
+
 def getPredictions(model,df,feat):
 
     output_dic = {}
@@ -104,7 +109,7 @@ def getPredictions(model,df,feat):
 
         emotion = max(res, key= lambda x: res[x])
         output_dic['Emotion'] = emotion.title()
-        output_dic['Confidence'] = round(output_dic['probabilities'][emotion],2)*100
+        output_dic['Confidence'] = round_up(output_dic['probabilities'][emotion],3)*100
         output_dic['status'] = 200
 
         return output_dic
