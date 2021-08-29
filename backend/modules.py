@@ -66,9 +66,10 @@ def audio_features(audio_file_path : str):
 def audio_to_text(audio_file_path : str):
 
     try:
-        sound = AudioSegment.from_mp3(audio_file_path)
-        sound.export("temp.wav", format="wav")
-        with sr.AudioFile('temp.wav') as source:
+        recognizer = sr.Recognizer()
+        #sound = AudioSegment.from_mp3(audio_file_path)
+        #sound.export("temp.wav", format="wav")
+        with sr.AudioFile(audio_file_path) as source:
             audio = recognizer.record(source)                  
             text = recognizer.recognize_google(audio)
         return text
@@ -112,7 +113,7 @@ def getPredictions(model,df,feat):
 
         output_dic['Emotion'] = emotion.title()
 
-        output_dic['Confidence'] = round(output_dic['probabilities'][emotion],2)
+        output_dic['Confidence'] = round(output_dic['probabilities'][emotion],2)*100
 
         output_dic['status'] = 200
 

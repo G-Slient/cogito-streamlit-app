@@ -3,6 +3,7 @@ import json
 import requests
 import librosa
 import numpy as np
+import os
 import time
 import soundfile as sf
 from fastapi import File
@@ -39,7 +40,7 @@ class Item(BaseModel):
     sr: int
 
 @app.post("/get_predictions")
-def get_predictions(item: Item):
+async def get_predictions(item: Item):
     start_time = time.time()
     is_text = False
 
@@ -49,6 +50,8 @@ def get_predictions(item: Item):
     file_location = f"data/{filename}"
     sf.write(file_location,y,sr)
     print({"info": f"file '{filename}' saved at '{file_location}'"})
+
+    
 
     #extract features from audio
     features_df = modules.audio_features(file_location)
@@ -69,3 +72,23 @@ def get_predictions(item: Item):
     output_dic['execution_time'] = round((time.time()-start_time),2)
     print(output_dic)
     return output_dic
+
+
+
+
+@app.post("/speech_to_text")
+async def speech_to_text(item: Item):
+    
+    if not os.path.exists("tmp"):
+        os.makedirs("tmp")
+
+    y = np.asarray(item.y)
+    sr = item.sr
+    filename = item.name
+    file_location = f"tmp/{filename}"
+    sf.write(file_location,y,sr)
+    print({"info": f"file '{filename}' saved at '{file_location}'"})
+    
+    text = modules.audio_to_text(file_location)
+
+    return {"text":text,"status":200}

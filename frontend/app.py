@@ -12,7 +12,7 @@ import json
 
 
 def init():
-    global use_ploty, backend, print_time
+    global use_ploty, backend, print_time, recog_text
     use_ploty = True 
     print_time = False
     backend = "http://localhost:8000"
@@ -48,11 +48,10 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
-def create_request(uploaded_file):
+def create_request(uploaded_file,col1):
  
     url = f"{backend}/get_predictions"
 
-    
     if not os.path.exists("tmp"):
         os.makedirs("tmp")
 
@@ -74,9 +73,18 @@ def create_request(uploaded_file):
         #payload
         files = {"name":uploaded_file.name,"y":y,"sr":sr}
 
-   
     #post request
     response = requests.post(url, data=json.dumps(files,cls=NumpyEncoder))
+
+    url1 = f"{backend}/speech_to_text"
+    #post request
+    response_text = requests.post(url1, data=json.dumps(files,cls=NumpyEncoder))
+    print(response_text.json())
+
+    if response_text.json()['text']!=' ':
+        recog_text = response_text.json()['text']
+        col1.markdown('<center><h3 style="color: black;">Recognized Text:'+recog_text+'</h3></center>',
+                                unsafe_allow_html=True)
 
     return response.json()
     
@@ -110,6 +118,8 @@ def main():
                                 unsafe_allow_html=True)
             col1.audio(uploaded_file)
 
+                
+
     with col2:
         col2.markdown('<center><h3 style="color: black;">Prediction</h3></center>',
                                         unsafe_allow_html=True)
@@ -117,17 +127,18 @@ def main():
             gif_path = os.path.join("assets","load.gif")
             gif_runner = col2.image(gif_path,use_column_width=True,width=10)
             
-            output_dic = create_request(uploaded_file)
+            output_dic = create_request(uploaded_file,col1)
             
             #output_dic = get_emotion(uploaded_file)
             gif_runner.empty()
             if output_dic['status']==200:
                 if use_ploty:
                     df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index').reset_index().rename(columns={'index':'Labels',0:'Probability'})
-                    df = df.sort_values(by=["Probability"], ascending=True)
-                    colors = ['lightslategray'] * 7
-                    colors[6] = 'crimson'
-                    fig = px.bar(df,y="Labels",x="Probability",orientation='h')
+                    df = df.sort_values(by=["Probability"], ascending=False)
+                    df['Probability'] = df['Probability'].apply(lambda x: x*100)
+                    colors = ['lightsalmon'] * 7
+                    colors[0] = 'lightgreen'
+                    fig = px.bar(df,x="Labels",y="Probability",orientation='v')
                     fig.update_traces(marker_color=colors)
                     col2.plotly_chart(fig, use_container_width=True)
                 else:
