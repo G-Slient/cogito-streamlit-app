@@ -1,5 +1,10 @@
 # Cogito-Streamlit-App
 
+## Demo Link 
+
+     https://youtu.be/YXzkM08Mko0
+
+
 <img src="frontend/assets/preview.gif">
 
 ## Instructions to set up the environment
