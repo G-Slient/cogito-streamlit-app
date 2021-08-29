@@ -7,10 +7,14 @@ import pandas as pd
 import os
 import time
 import plotly.express as px
+import requests
+import json
+
 
 def init():
-    global use_ploty
+    global use_ploty, backend
     use_ploty = False 
+    backend = "http://localhost:8000/"
 
     st.set_page_config(layout="wide")
     return
@@ -37,6 +41,30 @@ def get_emotion(uploaded_file):
     }
     return output_dic
 
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+def create_request(uploaded_file):
+ 
+    url = f"{backend}/get_predictions"
+
+    #load the audio file
+    y, sr = librosa.load(uploaded_file)
+    print(y.shape,sr)
+
+    #payload
+    files = {"name":uploaded_file.name,"y":y,"sr":sr}
+    #post request
+    response = requests.post(url, data=json.dumps(files,cls=NumpyEncoder))
+
+    return response
+
+    
+
+
 def main():
     
     output_dic = {}
@@ -47,8 +75,6 @@ def main():
     #Project Title
     st.markdown('<center><h1 style="color: black;">Audio Emotion Detection</h1></center>',
                             unsafe_allow_html=True)
-
-    
 
     #layout
     au = st.empty()
@@ -73,6 +99,9 @@ def main():
         if uploaded_file is not None:
             gif_path = os.path.join("assets","load.gif")
             gif_runner = col2.image(gif_path,use_column_width=True,width=10)
+            
+            res = create_request(uploaded_file)
+            print(res)
             output_dic = get_emotion(uploaded_file)
             gif_runner.empty()
             if output_dic['probabilities']:
@@ -89,7 +118,6 @@ def main():
                 col2.markdown('<center><h3 style="color: green;">Confidence Score: '+str(output_dic["Confidence"])+'%</h3></center>',
                                 unsafe_allow_html=True)
 
-            
 
 
 if __name__=='__main__':
