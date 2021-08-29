@@ -75,7 +75,7 @@ def audio_to_text(audio_file_path : str):
     except sr.UnknownValueError:
         return " "
 
-def feature_selection(df:pd.DataFrame)-> list:
+def load_features()-> list:
 
     # feat = df.columns.tolist()
     # feat.remove("formants_slidingwindow")
@@ -98,6 +98,7 @@ def load_model():
 def getPredictions(model,df,feat):
 
     output_dic = {}
+
     try:
         #process the null, infinite values
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -116,7 +117,8 @@ def getPredictions(model,df,feat):
         output_dic['status'] = 200
 
         return output_dic
-    except:
+    except Exception as e:
+        print("Oops!", e.__class__, "occurred.")
         print("Error in getPredictions")
         output_dic['status'] = 202
         return output_dic

@@ -3,6 +3,7 @@ import json
 import requests
 import librosa
 import numpy as np
+import time
 import soundfile as sf
 from fastapi import File
 from fastapi import FastAPI
@@ -39,7 +40,7 @@ class Item(BaseModel):
 
 @app.post("/get_predictions")
 def get_predictions(item: Item):
-    
+    start_time = time.time()
     is_text = False
 
     y = np.asarray(item.y)
@@ -61,8 +62,10 @@ def get_predictions(item: Item):
     features_df['fileduration']= modules.calAudioDuration(file_location)
 
     #features selection
-    features = modules.feature_selection(features_df)
+    features = modules.load_features()
 
     output_dic = modules.getPredictions(model,features_df,features)
+    print("Execution time {} sec::".format((time.time()-start_time)))
+    output_dic['execution_time'] = round((time.time()-start_time),2)
     print(output_dic)
     return output_dic

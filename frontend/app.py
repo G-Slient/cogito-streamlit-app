@@ -12,8 +12,9 @@ import json
 
 
 def init():
-    global use_ploty, backend
+    global use_ploty, backend, print_time
     use_ploty = False 
+    print_time = True
     backend = "http://localhost:8000"
 
     st.set_page_config(layout="wide")
@@ -51,12 +52,29 @@ def create_request(uploaded_file):
  
     url = f"{backend}/get_predictions"
 
-    #load the audio file
-    y, sr = librosa.load(uploaded_file)
-    print(y.shape,sr,uploaded_file.name)
+    
+    if not os.path.exists("tmp"):
+        os.makedirs("tmp")
 
-    #payload
-    files = {"name":uploaded_file.name,"y":y,"sr":sr}
+    if uploaded_file.name.split(".")[-1]!="wav":
+        with open(os.path.join("tmp","file.wav"), "wb") as f:
+            f.write(uploaded_file.getvalue())
+            f.close()
+        #load the audio file
+        y, sr = librosa.load(os.path.join("tmp","file.wav"))
+        print(y.shape,sr,uploaded_file.name)
+         #payload
+        files = {"name":uploaded_file.name.split(".")[0]+".wav","y":y,"sr":sr}
+        # delete the intermedite file
+        #os.remove(os.path.join("tmp","file.wav"))
+    else:
+        #load the audio file
+        y, sr = librosa.load(uploaded_file)
+        print(y.shape,sr,uploaded_file.name)
+        #payload
+        files = {"name":uploaded_file.name,"y":y,"sr":sr}
+
+   
     #post request
     response = requests.post(url, data=json.dumps(files,cls=NumpyEncoder))
 
@@ -109,16 +127,21 @@ def main():
                     fig = px.bar(df,y="Labels",x="Probability",orientation='h')
                     col2.plotly_chart(fig, use_container_width=True)
                 else:
-                    df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index')
+                    df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index').rename(columns={'index':'Labels',0:'Probability'})
                     col2.bar_chart(df,use_container_width=True)
                 col2.markdown('<center><h3 style="color: black;">Predicted Emotion: '+output_dic["Emotion"]+'</h3></center>',
                                 unsafe_allow_html=True)
 
                 col2.markdown('<center><h3 style="color: green;">Confidence Score: '+str(output_dic["Confidence"])+'%</h3></center>',
                                 unsafe_allow_html=True)
+                if print_time:
+                    col2.markdown('<center><h3 style="color: green;">Execution Time: '+str(output_dic['execution_time'])+'sec</h3></center>',
+                                unsafe_allow_html=True)
+                    
             else:
                 col2.markdown('<center><h3 style="color: red;">Error! Try other Audio</h3></center>',
                                 unsafe_allow_html=True)
+        
 
 
 
