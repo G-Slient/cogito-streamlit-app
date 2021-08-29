@@ -13,8 +13,8 @@ import json
 
 def init():
     global use_ploty, backend, print_time
-    use_ploty = False 
-    print_time = True
+    use_ploty = True 
+    print_time = False
     backend = "http://localhost:8000"
 
     st.set_page_config(layout="wide")
@@ -124,7 +124,11 @@ def main():
             if output_dic['status']==200:
                 if use_ploty:
                     df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index').reset_index().rename(columns={'index':'Labels',0:'Probability'})
+                    df = df.sort_values(by=["Probability"], ascending=True)
+                    colors = ['lightslategray'] * 7
+                    colors[6] = 'crimson'
                     fig = px.bar(df,y="Labels",x="Probability",orientation='h')
+                    fig.update_traces(marker_color=colors)
                     col2.plotly_chart(fig, use_container_width=True)
                 else:
                     df = pd.DataFrame.from_dict(output_dic['probabilities'],orient='index').rename(columns={'index':'Labels',0:'Probability'})
